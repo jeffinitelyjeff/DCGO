@@ -10,6 +10,7 @@ public class OpeningButton : MonoBehaviour
 
     [Header("選択表示オブジェクト")]
     public GameObject selectedObject;
+
     public void OnSelect()
     {
         if (selectedObject != null)

@@ -55,6 +55,10 @@ public class Opening : MonoBehaviour
 
     public GameObject ModeButtons;
 
+    [Header("Keyboard Menu Navigation")]
+    [SerializeField] List<OpeningButton> _keyboardMenuButtons = new List<OpeningButton>();
+    private int _keyboardSelectedIndex = -1;
+
     public Vector3 DeckInfoPrefabStartScale;
 
     public Vector3 DeckInfoPrefabExpandScale;
@@ -102,6 +106,8 @@ public class Opening : MonoBehaviour
     int UpdateFrame = 5;
     private void Update()
     {
+        HandleMenuKeyboard();
+
         #region 数フレームに一度だけ更新
         count++;
 
@@ -367,7 +373,7 @@ public class Opening : MonoBehaviour
             List<Camera> openingCameras = new List<Camera>();
 
             for (int i = 0; i < camerasParent.childCount; i++)
-            {             
+            {
                 if (camerasParent.GetChild(i).TryGetComponent<Camera>(out var camera))
                 {
                     openingCameras.Add(camera);
@@ -391,12 +397,91 @@ public class Opening : MonoBehaviour
     }
     public void OffModeButtons()
     {
+        if (_keyboardSelectedIndex >= 0 && _keyboardSelectedIndex < _keyboardMenuButtons.Count)
+        {
+            _keyboardMenuButtons[_keyboardSelectedIndex].OnExit();
+        }
+        _keyboardSelectedIndex = -1;
         ModeButtons.SetActive(false);
     }
 
     public void OnModeButtons()
     {
         ModeButtons.SetActive(true);
+    }
+
+    void SetKeyboardSelection(int index)
+    {
+        if (_keyboardSelectedIndex >= 0 && _keyboardSelectedIndex < _keyboardMenuButtons.Count)
+        {
+            _keyboardMenuButtons[_keyboardSelectedIndex].OnExit();
+        }
+        _keyboardSelectedIndex = index;
+        if (_keyboardSelectedIndex >= 0 && _keyboardSelectedIndex < _keyboardMenuButtons.Count)
+        {
+            _keyboardMenuButtons[_keyboardSelectedIndex].OnSelect();
+        }
+    }
+
+    void HandleMenuKeyboard()
+    {
+        if (_keyboardMenuButtons == null || _keyboardMenuButtons.Count == 0)
+        {
+            return;
+        }
+
+        if (!ModeButtons.activeSelf)
+        {
+            return;
+        }
+
+        foreach (YesNoObject yesNoObject in YesNoObjects)
+        {
+            if (yesNoObject.gameObject.activeSelf)
+            {
+                return;
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            int next = Mathf.Max(0, _keyboardSelectedIndex + 1) % _keyboardMenuButtons.Count;
+            SetKeyboardSelection(next);
+        }
+        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            int next = (Mathf.Max(0, _keyboardSelectedIndex) - 1 + _keyboardMenuButtons.Count) % _keyboardMenuButtons.Count;
+            SetKeyboardSelection(next);
+        }
+        else if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (_keyboardSelectedIndex >= 0 && _keyboardSelectedIndex < _keyboardMenuButtons.Count)
+            {
+                _keyboardMenuButtons[_keyboardSelectedIndex].OnExit();
+            }
+            _keyboardSelectedIndex = -1;
+        }
+        else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space))
+        {
+            if (_keyboardSelectedIndex >= 0 && _keyboardSelectedIndex < _keyboardMenuButtons.Count)
+            {
+                OpeningButton btn = _keyboardMenuButtons[_keyboardSelectedIndex];
+                PlayDecisionSE();
+                EventTrigger trigger = btn.GetComponentInParent<EventTrigger>();
+                if (trigger == null)
+                {
+                    trigger = btn.GetComponentInChildren<EventTrigger>();
+                }
+                if (trigger != null)
+                {
+                    var entry = trigger.triggers.Find(t => t.eventID == EventTriggerType.PointerClick);
+                    if (entry != null)
+                    {
+                        entry.callback.Invoke(new BaseEventData(EventSystem.current));
+                    }
+                }
+            }
+        }
     }
 
     public void CreateOnClickEffect()
