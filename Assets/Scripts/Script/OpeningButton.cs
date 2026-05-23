@@ -27,4 +27,15 @@ public class OpeningButton : MonoBehaviour
             selectedObject.SetActive(false);
         }
     }
+
+    public void OnClick()
+    {
+        if (ButtonAnimator != null)
+        {
+            ButtonAnimator.SetTrigger("Click");
+        }
+
+        Opening.instance.CreateOnClickEffect();
+        ContinuousController.instance.PlaySE(Opening.instance.DecisionSE);
+    }
 }
